@@ -6,6 +6,9 @@ This project implements a parallel Moving Average Filter using CUDA to process l
 ## Requirements
 * CUDA Toolkit (nvcc)
 * Make
+* **Python 3**: For the visualization script.
+    * **Libraries**: `pandas`, `matplotlib`.
+    * Install via: `pip install pandas matplotlib`
 
 ## Compilation
 To compile the project, run:
@@ -28,3 +31,4 @@ Or run it manually with custom CLI arguments:
 * `main.cu`: Source code.
 * `Makefile`: Build system.
 * `output_*.csv`: Proof of execution logs showing input vs smoothed output.
+* `plot_results.py`: Python script to generate visualization plots (`.png`) from the output CSV files .
