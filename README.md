@@ -5,6 +5,35 @@ This project implements a high-throughput parallel Moving Average Filter using C
 
 This project demonstrates "scale" by effectively processing datasets ranging from thousands to tens of millions of data points, leveraging the massive parallelism of the GPU to outperform sequential processing methods.
 
+## Technical Implementation
+
+### 1. The Core Algorithm: Moving Average Kernel
+The heart of the project is the `movingAverageKernel`, which functions as a **1D Stencil Operation**. Instead of iterating through the data sequentially (as a CPU would), this kernel assigns a single CUDA thread to calculate the smoothed value for exactly one data point.
+
+
+
+* **Thread Indexing:** The kernel calculates a unique global index (`idx`) for every thread using the standard CUDA formula:
+    `int idx = blockDim.x * blockIdx.x + threadIdx.x;`
+    This maps the hardware thread hierarchy (blocks and threads) to the linear data array.
+* **Windowing Logic:** For every valid index `idx`, the thread opens a local loop that sums the values of neighboring elements (e.g., left 2 neighbors, itself, right 2 neighbors) and calculates the average.
+* **Boundary Handling:** The kernel includes boundary checks (`if (neighborIdx >= 0 && neighborIdx < numElements)`) to prevent out-of-bounds memory access at the start and end of the array.
+
+### 2. Scalability & Dynamic Sizing
+The project meets the requirement for processing "large amounts of data" through **Dynamic Grid Sizing**.
+* **Grid Calculation:** The host code calculates `blocksPerGrid` dynamically based on the user-provided input size (`-n` argument): `(numElements + threadsPerBlock - 1) / threadsPerBlock`.
+* **Synthetic Data Generation:** To avoid I/O bottlenecks when demonstrating massive scale (50M+ points), the host generates synthetic noisy sine waves (`sin(i * 0.01f) + noise`) directly in memory.
+
+### 3. Memory Architecture
+The code employs a standard **Host-to-Device transfer pattern**:
+
+
+
+1.  **Host Allocation:** `std::vector<float>` is used for automatic memory management on the CPU.
+2.  **Device Allocation:** `cudaMalloc` reserves linear memory on the GPU VRAM.
+3.  **Transfer:** `cudaMemcpy` moves raw noisy data to the GPU (Host to Device).
+4.  **Processing:** The GPU kernel reads from Global Memory (`d_input`) and writes to Global Memory (`d_output`).
+5.  **Retrieval:** Smoothed data is copied back to the host (`cudaMemcpy` Device to Host) for verification.
+
 ## Repository Contents
 * **`main.cu`**: The core C++ and CUDA source code implementing the signal generation and Moving Average kernel.
 * **`Makefile`**: Build script to compile the project using `nvcc`.
